@@ -1,5 +1,5 @@
 export default {
-  slack_webhook_url: 'https://hooks.slack.com/services/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',
+  slack_webhook_url: 'https://hooks.slack.com/services/EWETWETWET/TWETWETWET/WTWETWETWETEW',
   slack_channel: '#test',
   slack_username: 'Skroutz',
   products: [
