@@ -1,104 +1,79 @@
-const fs = require('fs');
-const cheerio = require('cheerio');
-const axios = require('axios');
-const chalk = require('chalk');
-const moment = require('moment');
-const Discord = require('discord.js');
-
-// If you want to scan for an other product all you have to do is change the product URL variables
+const fs = require('fs')
+const cheerio = require('cheerio')
+const axios = require('axios')
+const chalk = require('chalk')
+const moment = require('moment')
+const Discord = require('discord.js')
+const SlackNotify = require('slack-notify')
+const settings = require('./config.js')
 
 // A message will be sent to this webhook when the product reaches the threshold price or lower
-// The id is the first part code of the URL you get when creating a webhook in a channel 
-const webhookId = "<YOUR-ID>";
+// The id is the first part code of the URL you get when creating a webhook in a channel
+// init discord
 
-// The token is the second part
-const webhookToken = "<YOUR-TOKEN>";
+const slack = SlackNotify(settings.slack_webhook_url)
+var slack_notify = slack.extend({
+  channel: settings.slack_webhook_url,
+  icon_emoji: ':computer:',
+  username: settings.slack_username,
+})
 
-const webhook = new Discord.WebhookClient(webhookId, webhookToken);
+const webhook = new Discord.WebhookClient(settings.discord_webhook_id, settings.discord_webhook_token)
 
 // How many seconds to wait before checking availability
 // Set it atleast 5 as to not get IP banned since i haven't implemented proxies
-const seconds = 5;
-const interval = seconds * 1000;
+
+const interval = seconds * settings.check_every_seconds
 
 // The name of the log file
-const logFile = "log.txt";
+const logFile = 'log.txt'
 
-// The name of the product
-const productName = "AMD Ryzen 5 5600X";
-
-// If the products price drops or is equal to threshold the webhook is sent
-const threshold = 350;
-
-// URL's of the products
-const skroutzUrl = "https://www.skroutz.gr/s/25549852/AMD-Ryzen-5-5600X-Box.html";
-const bestPriceUrl = "https://www.bestprice.gr/item/2156351449/amd-ryzen-5-5600x-box-with-wraith.html";
-
-const checkSkroutz = url => {
-    axios.get(url).then(response => {
-
-        const $ = cheerio.load(response.data);
-
-        let prods = [];
-        $(".js-product-link.product-link.content-placeholder").each((i, elem) => {
-            prods.push([elem.children[0].data, elem.attribs.href]);
-        });
-
-        if (prods.length > 0) {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [x${prods.length}] [${productName}] :: ${chalk.green('IN STOCK')}`);
-            fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info:: [skroutz] [x${prods.length}] [${productName}] :: IN STOCK\n`);
-        } else {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [x0] [${productName}] :: ${chalk.red('OUT OF STOCK')}`);
-            fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info :: [skroutz] [x0] [${productName}] :: OUT OF STOCK\n`);
-        }
-
-        lowest = parseInt(prods[0][0].substring(0, prods[0][0].length - 1).replace(',', '.'));
-
-        if (lowest <= threshold) {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [${productName}] :: ${chalk.green('REACHED THRESHOLD')} [${lowest}€]`);
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: ${chalk.blue('SENDING WEBHOOK...')}`);
-            const data =`${productName} is in stock at https://www.skroutz.gr${prods[0][1]} for ${lowest}€`;
-            webhook.send(data).catch(console.error);
-        }
-
-    }).catch(error => {
-        console.log(error);
-    });
+function sleep(milliseconds) {
+  var start = new Date().getTime()
+  for (var i = 0; i < 1e7; i++) {
+    if (new Date().getTime() - start > milliseconds) {
+      break
+    }
+  }
 }
 
-const checkBestPrice = url => {
-    axios.get(url).then(response => {
+const checkSkroutz = (url, name, threshold) => {
+  axios
+    .get(url)
+    .then((response) => {
+      const $ = cheerio.load(response.data)
 
-        const $ = cheerio.load(response.data);
+      let prods = []
+      $('.js-product-link.product-link.content-placeholder').each((i, elem) => {
+        prods.push([elem.children[0].data, elem.attribs.href])
+      })
 
-        let prods = [];
-        $(".prices__price").each((i, elem) => {
-            prods.push([elem.children[0].children[0].data, elem.children[0].attribs.href]);
-        });
+      if (prods.length > 0) {
+        console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [x${prods.length}] [${productName}] :: ${chalk.green('IN STOCK')}`)
+        fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info:: [skroutz] [x${prods.length}] [${productName}] :: IN STOCK\n`)
+      } else {
+        console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [x0] [${productName}] :: ${chalk.red('OUT OF STOCK')}`)
+        fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info :: [skroutz] [x0] [${productName}] :: OUT OF STOCK\n`)
+      }
 
-        if (prods.length > 0) {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [bestprice] [x${prods.length}] [${productName}] :: ${chalk.green('IN STOCK')}`);
-            fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info:: [bestprice] [x${prods.length}] [${productName}] :: IN STOCK\n`);
-        } else {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [bestprice] [x0] [${productName}] :: ${chalk.red('OUT OF STOCK')}`);
-            fs.appendFileSync(logFile, `[${moment().format('HH:mm:ss')}] info :: [bestprice] [x0] [${productName}] :: OUT OF STOCK\n`);
-        }
+      lowest = parseInt(prods[0][0].substring(0, prods[0][0].length - 1).replace(',', '.'))
 
-        lowest = parseInt(prods[0][0].substring(0, prods[0][0].length - 1).replace(',', '.'));
-
-        if (lowest <= threshold) {
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [bestprice] [${productName}] :: ${chalk.green('REACHED THRESHOLD')} [${lowest}€]`);
-            console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: ${chalk.blue('SENDING WEBHOOK...')}`);
-            const data =`${productName} is in stock at https://www.bestprice.gr${prods[0][1]} for ${lowest}€`;
-            webhook.send(data).catch(console.error);
-        }
-        
-    }).catch(error => {
-        console.log(error);
-    });
+      if (lowest <= threshold) {
+        console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [${productName}] :: ${chalk.green('REACHED THRESHOLD')} [${lowest}€]`)
+        console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: ${chalk.blue('SENDING WEBHOOK...')}`)
+        const data = `${name} is in stock at https://www.skroutz.gr${prods[0][1]} for ${lowest}€`
+        if (settings.enable_slack) slack_notify({ text: data }).catch(console.error)
+        if (settings.enable_discord) webhook.send(data).catch(console.error)
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+    })
 }
 
 setInterval(() => {
-    checkSkroutz(skroutzUrl);
-    checkBestPrice(bestPriceUrl); 
-}, interval);
+  settings.products.map((product) => {
+    sleep(5000)
+    checkSkroutz(product.url, product.name, product.lower_then_threshold)
+  })
+}, interval)
