@@ -70,17 +70,19 @@ const checkSkroutz = (url, name, threshold) => {
       console.log(error)
     })
 }
-
-settings.products.map(async (product) => {
-  await sleep(5000) // How many seconds to wait before checking availability
-  // Set it atleast 5 as to not get IP banned since i haven't implemented proxies
-  checkSkroutz(product.url, product.name, product.lower_then_threshold)
-})
-
-setInterval(() => {
-  for (const product in settings.products) {
-    sleep(5000).then() // How many seconds to wait before checking availability
-    // Set it atleast 5 as to not get IP banned since i haven't implemented proxies
+settings.products.map((product, index) => {
+  setTimeout(() => {
     checkSkroutz(product.url, product.name, product.lower_then_threshold)
-  }
+  }, 5000 * (index + 1))
+  // How many seconds to wait before checking availability
+  // Set it atleast 5 as to not get IP banned since i haven't implemented proxies
+})
+setInterval(() => {
+  settings.products.map((product, index) => {
+    setTimeout(() => {
+      checkSkroutz(product.url, product.name, product.lower_then_threshold)
+    }, 5000 * (index + 1))
+    // How many seconds to wait before checking availability
+    // Set it atleast 5 as to not get IP banned since i haven't implemented proxies
+  })
 }, interval)
