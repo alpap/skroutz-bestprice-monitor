@@ -2,7 +2,7 @@
   "name": "skroutz-bestprice-monitor",
   "version": "1.0.0",
   "description": "",
-  "main": "./app/index.js",
+  "main": "./index.js",
   "dependencies": {
     "axios": "^0.21.0",
     "chalk": "^4.1.0",
@@ -12,8 +12,9 @@
     "moment": "^2.29.1",
     "slack-notify": "^2.0.2"
   },
+  "type": "module",
   "scripts": {
-    "start": "node ."
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
