@@ -18,21 +18,10 @@ var slack_notify = slack.extend({
   username: settings.slack_username,
 })
 
-const webhook = new Discord.WebhookClient(settings.discord_webhook_id, settings.discord_webhook_token)
-
 const interval = 1000 * settings.check_every_seconds
 
 // The name of the log file
 const logFile = 'log.txt'
-
-function sleep(milliseconds) {
-  var start = new Date().getTime()
-  for (var i = 0; i < 1e7; i++) {
-    if (new Date().getTime() - start > milliseconds) {
-      break
-    }
-  }
-}
 
 const checkSkroutz = (url, name, threshold) => {
   axios
@@ -53,7 +42,7 @@ const checkSkroutz = (url, name, threshold) => {
       }
 
       const lowest = parseInt(prods.sort()[0])
-      if (lowest <= threshold) {
+      if (lowest < threshold) {
         console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: [skroutz] [${name}] :: ${chalk.green('REACHED THRESHOLD')} [${lowest}€]`)
         console.log(`[${moment().format('HH:mm:ss')}] ${chalk.green('info')} :: ${chalk.blue('SENDING WEBHOOK...')}`)
         const data = `${name} ${lowest}€ is in stock at: \n ${url}`
